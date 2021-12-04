@@ -67,46 +67,44 @@ def day3():
 
 
 def day4():
-    def picker(boards):
+    def transpose(matrix):
+        return [list(t) for t in zip(*matrix)]
+
+    def sum2d(matrix):
+        return sum(sum(matrix, []))
+
+    def winner():
+        original = deepcopy(boards)
+        transposed = [transpose(board) for board in original]
         for pick in picks:
-            for board in [*boards, *transposed]:
+            for board in [*original, *transposed]:
                 for row in board:
                     if pick in row:
                         row.remove(pick)
-                    if len(row) == 0:
-                        total = sum(sum(board, [])) * pick
-                        return total
+                        if len(row) == 0:
+                            return sum2d(board) * pick
 
-    def loser(boards):
+    def loser():
+        original = deepcopy(boards)
+        transposed = [transpose(board) for board in original]
         n = len(boards)
-        winners = [i for i in range(n)]
+        winners = set()
         for pick in picks:
             for i, board in enumerate([*boards, *transposed]):
                 for row in board:
                     if pick in row:
                         row.remove(pick)
                         if len(row) == 0:
-                            if i % n in winners:
-                                winners.remove(i % n)
-                                if len(winners) == 0:
-                                    return sum(sum(boards[i % n], [])) * pick
-    boards = []
+                            winners.add(i % n)
+                            if len(winners) == n:
+                                return sum2d(board) * pick
+
     with open('4.txt') as f:
-        picks = list(map(int, f.readline().split(',')))
-        board = []
-        for line in f:
-            g = list(map(int, line.strip().split()))
-            if len(g) == 0:
-                if len(board) > 0:
-                    boards.append(board)
-                    board = []
-            else:
-                board.append(g)
-        if len(board) > 0:
-            boards.append(board)
-    transposed = [list(map(list, zip(*board))) for board in boards]
-    print(picker(deepcopy(boards)))
-    print(loser(deepcopy(boards)))
+        picks = [int(val) for val in f.readline().split(',')]
+        f.readline()
+        boards = [[[int(val) for val in row.split()] for row in board.split('\n')] for board in f.read().split('\n\n')]
+    print(winner())
+    print(loser())
 
 
 if __name__ == '__main__':
