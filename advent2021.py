@@ -1,3 +1,6 @@
+from copy import deepcopy
+
+
 def day1():
     with open('1.txt') as f:
         nums = [int(val) for val in f.readlines()]
@@ -64,8 +67,46 @@ def day3():
 
 
 def day4():
+    def picker(boards):
+        for pick in picks:
+            for board in [*boards, *transposed]:
+                for row in board:
+                    if pick in row:
+                        row.remove(pick)
+                    if len(row) == 0:
+                        total = sum(sum(board, [])) * pick
+                        return total
+
+    def loser(boards):
+        n = len(boards)
+        winners = [i for i in range(n)]
+        for pick in picks:
+            for i, board in enumerate([*boards, *transposed]):
+                for row in board:
+                    if pick in row:
+                        row.remove(pick)
+                        if len(row) == 0:
+                            if i % n in winners:
+                                winners.remove(i % n)
+                                if len(winners) == 0:
+                                    return sum(sum(boards[i % n], [])) * pick
+    boards = []
     with open('4.txt') as f:
-        entries = [line.strip() for line in f.readlines()]
+        picks = list(map(int, f.readline().split(',')))
+        board = []
+        for line in f:
+            g = list(map(int, line.strip().split()))
+            if len(g) == 0:
+                if len(board) > 0:
+                    boards.append(board)
+                    board = []
+            else:
+                board.append(g)
+        if len(board) > 0:
+            boards.append(board)
+    transposed = [list(map(list, zip(*board))) for board in boards]
+    print(picker(deepcopy(boards)))
+    print(loser(deepcopy(boards)))
 
 
 if __name__ == '__main__':
