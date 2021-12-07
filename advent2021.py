@@ -1,3 +1,4 @@
+from collections import Counter
 from copy import deepcopy
 
 
@@ -105,6 +106,36 @@ def day4():
         boards = [[[int(val) for val in row.split()] for row in board.split('\n')] for board in f.read().split('\n\n')]
     print(winner())
     print(loser())
+
+
+def day5():
+    def ordered_range(start, end):
+        if start < end:
+            return range(start, end + 1)
+        elif start > end:
+            return range(start, end - 1, -1)
+
+    def discrete_points(x1, y1, x2, y2, allow_diags):
+        x_range = ordered_range(x1, x2)
+        y_range = ordered_range(y1, y2)
+        if x1 == x2:
+            return [(x1, y) for y in y_range]
+        elif y1 == y2:
+            return [(x, y1) for x in x_range]
+        elif allow_diags:
+            return [pair for pair in zip(x_range, y_range)]
+        return []
+
+    def count_unique_intersections(segments, allow_diags):
+        discrete = Counter()
+        for segment in segments:
+            discrete.update(discrete_points(*segment, allow_diags))
+        return sum(count > 1 for count in discrete.values())
+
+    with open('5.txt') as f:
+        entries = [[int(v) for p in line.strip().split(' -> ') for v in p.split(',')] for line in f.readlines()]
+    print(count_unique_intersections(entries, False))
+    print(count_unique_intersections(entries, True))
 
 
 def day7():
