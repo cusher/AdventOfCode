@@ -107,5 +107,22 @@ def day4():
     print(loser())
 
 
+def day7():
+    def distance_flat(a, b):
+        return abs(a - b)
+
+    def distance_growing(a, b):
+        d = distance_flat(a, b)
+        return int(d * (d + 1) / 2)
+
+    def closest(values, metric):
+        return min(sum(metric(value, i) for value in values) for i in range(min(values), max(values) + 1))
+
+    with open('7.txt') as f:
+        entries = [int(val) for val in f.read().strip().split(',')]
+    print(closest(entries, distance_flat))
+    print(closest(entries, distance_growing))
+
+
 if __name__ == '__main__':
-    day4()
+    day7()
