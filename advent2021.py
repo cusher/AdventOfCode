@@ -138,6 +138,29 @@ def day5():
     print(count_unique_intersections(entries, True))
 
 
+def day6():
+    def simulate_day_fast(fish_counts):
+        updated_counts = Counter()
+        for k, v in fish_counts.items():
+            if k == 0:
+                updated_counts[6] += v
+                updated_counts[8] += v
+            else:
+                updated_counts[k - 1] += v
+        return updated_counts
+
+    with open('6.txt') as f:
+        entries = [int(val) for val in f.read().strip().split(',')]
+    counts = Counter(entries)
+    for i in range(80):
+        counts = simulate_day_fast(counts)
+    print(sum(subtotal for subtotal in counts.values()))
+    counts = Counter(entries)
+    for i in range(256):
+        counts = simulate_day_fast(counts)
+    print(sum(subtotal for subtotal in counts.values()))
+
+
 def day7():
     def distance_flat(a, b):
         return abs(a - b)
