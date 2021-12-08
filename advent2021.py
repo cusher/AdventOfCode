@@ -178,5 +178,65 @@ def day7():
     print(closest(entries, distance_growing))
 
 
+def day8():
+    entries = []
+    with open('8.txt') as f:
+        for line in f.readlines():
+            a, b = line.split(' | ')
+            entries.append([a.strip(), b.strip()])
+    count = 0
+    for entry in entries:
+        for display in entry[1].split():
+            segment_count = len(display)
+            if segment_count in {2, 3, 4, 7}:
+                count += 1
+    print(count)
+    values = []
+    for entry in entries:
+        len5 = []
+        len6 = []
+        mapping = {}
+        for code in entry[0].split():
+            items = set(list(code))
+            segment_count = len(items)
+            if segment_count == 2:
+                mapping[1] = items
+            elif segment_count == 3:
+                mapping[7] = items
+            elif segment_count == 4:
+                mapping[4] = items
+            elif segment_count == 7:
+                mapping[8] = items
+            elif segment_count == 5:
+                len5.append(items)
+            elif segment_count == 6:
+                len6.append(items)
+        for check in len5:
+            if mapping[1].issubset(check):
+                mapping[3] = check
+                len5.remove(check)
+                break
+        mapping[9] = mapping[3] | mapping[4]
+        len6.remove(mapping[9])
+        for check in len6:
+            if mapping[1].issubset(check):
+                mapping[0] = check
+            else:
+                mapping[6] = check
+        bottom_left = (mapping[8] - (mapping[3] | mapping[4])).pop()
+        for check in len5:
+            if bottom_left in check:
+                mapping[2] = check
+            else:
+                mapping[5] = check
+        rev_map = {''.join(sorted(list(v))): k for k, v in mapping.items()}
+        temp = ''
+        for display in entry[1].split():
+            key = ''.join(sorted(list(display)))
+            temp += str(rev_map[key])
+        values.append(int(temp))
+    print(sum(values))
+
+
 if __name__ == '__main__':
-    day7()
+    day8()
