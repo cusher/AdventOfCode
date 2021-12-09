@@ -228,5 +228,59 @@ def day8():
     print(sum(values))
 
 
+def day9():
+    def get_adj(entries, i, j):
+        adj = []
+        if i > 0:
+            adj.append([i - 1, j])
+        if i < len(entries) - 1:
+            adj.append([i + 1, j])
+        if j > 0:
+            adj.append([i, j - 1])
+        if j < len(row) - 1:
+            adj.append([i, j + 1])
+        return adj
+
+    def find_higher(entries, i, j):
+        higher = []
+        options = get_adj(entries, i, j)
+        for option in options:
+            option_val = entries[option[0]][option[1]]
+            if option_val > entries[i][j] and option_val < 9:
+                higher.append(option)
+        return higher
+
+    def build_basin(entries, basin, start):
+        i, j = start
+        next = find_higher(entries, i, j)
+        for p in next:
+            if p not in basin:
+                basin.append(p)
+                build_basin(entries, basin, p)
+
+    with open('9.txt') as f:
+        entries = [[int(val) for val in list(line.strip())] for line in f.readlines()]
+    safe = []
+    safespots = []
+    for i, row in enumerate(entries):
+        for j, val in enumerate(row):
+            adj = [entries[pos[0]][pos[1]] for pos in get_adj(entries, i, j)]
+            if val < min(adj):
+                safe.append(val + 1)
+                safespots.append([i, j])
+    print(sum(safe))
+    basins = []
+    for start in safespots:
+        basin = []
+        basin.append(start)
+        build_basin(entries, basin, start)
+        basins.append(basin)
+    basins.sort(key=lambda b: len(b), reverse=True)
+    mult = 1
+    for i in range(3):
+        mult *= len(basins[i])
+    print(mult)
+
+
 if __name__ == '__main__':
-    day8()
+    day9()
