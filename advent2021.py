@@ -1,5 +1,6 @@
 from collections import Counter
 from copy import deepcopy
+from math import prod
 
 
 def day1():
@@ -229,57 +230,40 @@ def day8():
 
 
 def day9():
-    def get_adj(entries, i, j):
-        adj = []
-        if i > 0:
-            adj.append([i - 1, j])
-        if i < len(entries) - 1:
-            adj.append([i + 1, j])
-        if j > 0:
-            adj.append([i, j - 1])
-        if j < len(row) - 1:
-            adj.append([i, j + 1])
-        return adj
+    def at(position):
+        return entries[position[0]][position[1]]
 
-    def find_higher(entries, i, j):
-        higher = []
-        options = get_adj(entries, i, j)
-        for option in options:
-            option_val = entries[option[0]][option[1]]
-            if option_val > entries[i][j] and option_val < 9:
-                higher.append(option)
-        return higher
+    def in_bounds(position):
+        i, j = position
+        return 0 <= i < len(entries) and 0 <= j < len(entries[i])
 
-    def build_basin(entries, basin, start):
-        i, j = start
-        next = find_higher(entries, i, j)
-        for p in next:
+    def adjacent(position):
+        i, j = position
+        return [pos for pos in [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)] if in_bounds(pos)]
+
+    def build_basin(basin, start):
+        basin.add(start)
+        options = [option for option in adjacent(start) if at(start) < at(option) < 9]
+        for p in options:
             if p not in basin:
-                basin.append(p)
-                build_basin(entries, basin, p)
+                build_basin(basin, p)
 
     with open('9.txt') as f:
-        entries = [[int(val) for val in list(line.strip())] for line in f.readlines()]
-    safe = []
-    safespots = []
+        entries = [[int(val) for val in line.strip()] for line in f.readlines()]
+    safe_spots = []
     for i, row in enumerate(entries):
         for j, val in enumerate(row):
-            adj = [entries[pos[0]][pos[1]] for pos in get_adj(entries, i, j)]
-            if val < min(adj):
-                safe.append(val + 1)
-                safespots.append([i, j])
-    print(sum(safe))
-    basins = []
-    for start in safespots:
-        basin = []
-        basin.append(start)
-        build_basin(entries, basin, start)
-        basins.append(basin)
-    basins.sort(key=lambda b: len(b), reverse=True)
-    mult = 1
-    for i in range(3):
-        mult *= len(basins[i])
-    print(mult)
+            current = (i, j)
+            adj_heights = [at(pos) for pos in adjacent(current)]
+            if val < min(adj_heights):
+                safe_spots.append(current)
+    print(sum(at(spot) + 1 for spot in safe_spots))
+    basin_sizes = []
+    for basin_start in safe_spots:
+        current_basin = set()
+        build_basin(current_basin, basin_start)
+        basin_sizes.append(len(current_basin))
+    print(prod(sorted(basin_sizes)[-3:]))
 
 
 if __name__ == '__main__':
