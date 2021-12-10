@@ -266,5 +266,70 @@ def day9():
     print(prod(sorted(basin_sizes)[-3:]))
 
 
+def day10():
+    def opposite(char):
+        mappy = {
+            ')': '(',
+            ']': '[',
+            '}': '{',
+            '>': '<',
+        }
+        mappy = {v: k for k, v in mappy.items()}
+        return mappy[char]
+
+    def parse(stack, remainder):
+        while remainder:
+            test = remainder[0]
+            if test in ['(', '{', '[', '<']:
+                stack.append(test)
+                remainder.pop(0)
+                return parse(stack, remainder)
+            elif test == ')' and stack[-1] != '(':
+                raise Exception(test)
+            elif test == ']' and stack[-1] != '[':
+                raise Exception(test)
+            elif test == '}' and stack[-1] != '{':
+                raise Exception(test)
+            elif test == '>' and stack[-1] != '<':
+                raise Exception(test)
+            else:
+                stack.pop()
+                remainder.pop(0)
+        return [opposite(char) for char in reversed(stack)]
+
+    def scoring(item):
+        score = 0
+        for val in item:
+            score *= 5
+            score += finished.get(val)
+        return score
+
+    with open('10.txt') as f:
+        entries = [line.strip() for line in f.readlines()]
+    illegal = {
+        ')': 3,
+        ']': 57,
+        '}': 1197,
+        '>': 25137,
+    }
+    finished = {
+        ')': 1,
+        ']': 2,
+        '}': 3,
+        '>': 4,
+    }
+    score = 0
+    finishers = []
+    for line in entries:
+        try:
+            finishers.append(parse([line[0]], list(line[1:])))
+        except Exception as e:
+            score += illegal[e.args[0]]
+    print(score)
+    temp = [scoring(f) for f in finishers]
+    temp.sort()
+    print(temp[int(len(temp) / 2)])
+
+
 if __name__ == '__main__':
-    day9()
+    day10()
