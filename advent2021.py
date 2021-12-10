@@ -1,5 +1,6 @@
 from collections import Counter
 from copy import deepcopy
+from functools import reduce
 from math import prod
 
 
@@ -267,68 +268,47 @@ def day9():
 
 
 def day10():
-    def opposite(char):
-        mappy = {
-            ')': '(',
-            ']': '[',
-            '}': '{',
-            '>': '<',
-        }
-        mappy = {v: k for k, v in mappy.items()}
-        return mappy[char]
-
     def parse(stack, remainder):
+        opposite_map = {
+            '(': ')',
+            '[': ']',
+            '{': '}',
+            '<': '>',
+        }
         while remainder:
-            test = remainder[0]
+            test = remainder.pop(0)
             if test in ['(', '{', '[', '<']:
                 stack.append(test)
-                remainder.pop(0)
                 return parse(stack, remainder)
-            elif test == ')' and stack[-1] != '(':
+            elif test != opposite_map[stack[-1]]:
                 raise Exception(test)
-            elif test == ']' and stack[-1] != '[':
-                raise Exception(test)
-            elif test == '}' and stack[-1] != '{':
-                raise Exception(test)
-            elif test == '>' and stack[-1] != '<':
-                raise Exception(test)
-            else:
-                stack.pop()
-                remainder.pop(0)
-        return [opposite(char) for char in reversed(stack)]
-
-    def scoring(item):
-        score = 0
-        for val in item:
-            score *= 5
-            score += finished.get(val)
-        return score
+            stack.pop()
+        return [opposite_map[char] for char in reversed(stack)]
 
     with open('10.txt') as f:
         entries = [line.strip() for line in f.readlines()]
-    illegal = {
+    illegal_map = {
         ')': 3,
         ']': 57,
         '}': 1197,
         '>': 25137,
     }
-    finished = {
+    end_map = {
         ')': 1,
         ']': 2,
         '}': 3,
         '>': 4,
     }
-    score = 0
-    finishers = []
+    illegal_score = 0
+    end_scores = []
     for line in entries:
         try:
-            finishers.append(parse([line[0]], list(line[1:])))
+            ending = parse([], list(line))
+            end_scores.append(reduce(lambda score, char: score * 5 + end_map[char], ending, 0))
         except Exception as e:
-            score += illegal[e.args[0]]
-    print(score)
-    temp = [scoring(f) for f in finishers]
-    temp.sort()
-    print(temp[int(len(temp) / 2)])
+            illegal_score += illegal_map[e.args[0]]
+    print(illegal_score)
+    print(sorted(end_scores)[int(len(end_scores) / 2)])
 
 
 if __name__ == '__main__':
