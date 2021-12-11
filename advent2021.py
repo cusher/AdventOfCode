@@ -311,5 +311,59 @@ def day10():
     print(sorted(end_scores)[int(len(end_scores) / 2)])
 
 
+def day11():
+    def in_bounds(position):
+        i, j = position
+        return 0 <= i < len(entries) and 0 <= j < len(entries[i])
+
+    def adjacent(position):
+        i, j = position
+        return [pos for pos in [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1),
+                                (i - 1, j - 1), (i - 1, j + 1), (i + 1, j - 1), (i + 1, j + 1)] if in_bounds(pos)]
+
+    def simulate():
+        for i, row in enumerate(entries):
+            for j, octo in enumerate(row):
+                entries[i][j] += 1
+        flashers = set()
+        recheck = set()
+        for i, row in enumerate(entries):
+            for j, octo in enumerate(row):
+                if octo > 9 and (i, j) not in flashers:
+                    flashers.add((i, j))
+                    adjs = adjacent((i, j))
+                    for adj in adjs:
+                        entries[adj[0]][adj[1]] += 1
+                        recheck.add(adj)
+        while recheck:
+            octo = recheck.pop()
+            if entries[octo[0]][octo[1]] > 9 and octo not in flashers:
+                flashers.add(octo)
+                adjs = adjacent(octo)
+                for adj in adjs:
+                    entries[adj[0]][adj[1]] += 1
+                    recheck.add(adj)
+        for octo in flashers:
+            entries[octo[0]][octo[1]] = 0
+        return flashers
+
+    with open('11.txt') as f:
+        entries = [[int(val) for val in line.strip()] for line in f.readlines()]
+    part1 = None
+    part2 = None
+    flash_count = 0
+    for n in range(1000):
+        flashers = simulate()
+        flash_count += len(flashers)
+        if n == 99:
+            part1 = flash_count
+        if len(flashers) == 100 and part2 is None:
+            part2 = n + 1
+        if part1 and part2:
+            break
+    print(part1)
+    print(part2)
+
+
 if __name__ == '__main__':
-    day10()
+    day11()
