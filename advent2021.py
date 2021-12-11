@@ -1,7 +1,53 @@
 from collections import Counter
-from copy import deepcopy
+from copy import copy, deepcopy
 from functools import reduce
 from math import prod
+
+
+class Matrix:
+    def __init__(self, data):
+        self.data = data
+
+    def __copy__(self):
+        return Matrix([row.copy() for row in self.data])
+
+    def __getitem__(self, key):
+        return self.data[key[0]][key[1]]
+
+    def __setitem__(self, key, value):
+        self.data[key[0]][key[1]] = value
+
+    def __str__(self):
+        return '\n'.join(' '.join([str(item) for item in row]) for row in self.data)
+
+    @classmethod
+    def from_string(cls, string, delimiter=None):
+        if delimiter == '':
+            return cls([[int(val) for val in line] for line in string.split('\n')])
+        # No delimiter = split on whitespace
+        return cls([[int(val) for val in line.split(delimiter)] for line in string.split('\n')])
+
+    def indexes(self):
+        for i in range(len(self.data)):
+            for j in range(len(self.data[i])):
+                yield i, j
+
+    def in_bounds(self, position):
+        i, j = position
+        return 0 <= i < len(self.data) and 0 <= j < len(self.data[i])
+
+    def transpose(self):
+        return Matrix([list(t) for t in zip(*self.data)])
+
+    def sum(self):
+        return sum(sum(self.data, []))
+
+    def adjacent(self, position, diagonals=False):
+        i, j = position
+        options = [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)]
+        if diagonals:
+            options.extend([(i - 1, j - 1), (i - 1, j + 1), (i + 1, j - 1), (i + 1, j + 1)])
+        return [position for position in options if self.in_bounds(position)]
 
 
 def day1():
@@ -70,42 +116,36 @@ def day3():
 
 
 def day4():
-    def transpose(matrix):
-        return [list(t) for t in zip(*matrix)]
-
-    def sum2d(matrix):
-        return sum(sum(matrix, []))
-
     def winner():
         original = deepcopy(boards)
-        transposed = [transpose(board) for board in original]
+        transposed = [board.transpose() for board in original]
         for pick in picks:
             for board in [*original, *transposed]:
-                for row in board:
+                for row in board.data:
                     if pick in row:
                         row.remove(pick)
                         if len(row) == 0:
-                            return sum2d(board) * pick
+                            return board.sum() * pick
 
     def loser():
         original = deepcopy(boards)
-        transposed = [transpose(board) for board in original]
+        transposed = [board.transpose() for board in original]
         n = len(boards)
         winners = set()
         for pick in picks:
             for i, board in enumerate([*boards, *transposed]):
-                for row in board:
+                for row in board.data:
                     if pick in row:
                         row.remove(pick)
                         if len(row) == 0:
                             winners.add(i % n)
                             if len(winners) == n:
-                                return sum2d(board) * pick
+                                return board.sum() * pick
 
     with open('4.txt') as f:
         picks = [int(val) for val in f.readline().split(',')]
         f.readline()
-        boards = [[[int(val) for val in row.split()] for row in board.split('\n')] for board in f.read().split('\n\n')]
+        boards = [Matrix.from_string(board) for board in f.read().split('\n\n')]
     print(winner())
     print(loser())
 
@@ -231,34 +271,21 @@ def day8():
 
 
 def day9():
-    def at(position):
-        return entries[position[0]][position[1]]
-
-    def in_bounds(position):
-        i, j = position
-        return 0 <= i < len(entries) and 0 <= j < len(entries[i])
-
-    def adjacent(position):
-        i, j = position
-        return [pos for pos in [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)] if in_bounds(pos)]
-
     def build_basin(basin, start):
         basin.add(start)
-        options = [option for option in adjacent(start) if at(start) < at(option) < 9]
+        options = [option for option in data.adjacent(start) if data[start] < data[option] < 9]
         for p in options:
             if p not in basin:
                 build_basin(basin, p)
 
     with open('9.txt') as f:
-        entries = [[int(val) for val in line.strip()] for line in f.readlines()]
+        data = Matrix.from_string(f.read(), '')
     safe_spots = []
-    for i, row in enumerate(entries):
-        for j, val in enumerate(row):
-            current = (i, j)
-            adj_heights = [at(pos) for pos in adjacent(current)]
-            if val < min(adj_heights):
-                safe_spots.append(current)
-    print(sum(at(spot) + 1 for spot in safe_spots))
+    for current in data.indexes():
+        adj_heights = [data[pos] for pos in data.adjacent(current)]
+        if data[current] < min(adj_heights):
+            safe_spots.append(current)
+    print(sum(data[spot] + 1 for spot in safe_spots))
     basin_sizes = []
     for basin_start in safe_spots:
         current_basin = set()
@@ -312,57 +339,33 @@ def day10():
 
 
 def day11():
-    def in_bounds(position):
-        i, j = position
-        return 0 <= i < len(entries) and 0 <= j < len(entries[i])
-
-    def adjacent(position):
-        i, j = position
-        return [pos for pos in [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1),
-                                (i - 1, j - 1), (i - 1, j + 1), (i + 1, j - 1), (i + 1, j + 1)] if in_bounds(pos)]
-
-    def simulate():
-        for i, row in enumerate(entries):
-            for j, octo in enumerate(row):
-                entries[i][j] += 1
+    def simulate(matrix):
         flashers = set()
         recheck = set()
-        for i, row in enumerate(entries):
-            for j, octo in enumerate(row):
-                if octo > 9 and (i, j) not in flashers:
-                    flashers.add((i, j))
-                    adjs = adjacent((i, j))
-                    for adj in adjs:
-                        entries[adj[0]][adj[1]] += 1
-                        recheck.add(adj)
+        for position in matrix.indexes():
+            matrix[position] += 1
+            recheck.add(position)
         while recheck:
-            octo = recheck.pop()
-            if entries[octo[0]][octo[1]] > 9 and octo not in flashers:
-                flashers.add(octo)
-                adjs = adjacent(octo)
-                for adj in adjs:
-                    entries[adj[0]][adj[1]] += 1
+            checking = recheck.pop()
+            if matrix[checking] > 9 and checking not in flashers:
+                flashers.add(checking)
+                for adj in matrix.adjacent(checking, True):
+                    matrix[adj] += 1
                     recheck.add(adj)
-        for octo in flashers:
-            entries[octo[0]][octo[1]] = 0
+        for flasher in flashers:
+            matrix[flasher] = 0
         return flashers
 
     with open('11.txt') as f:
-        entries = [[int(val) for val in line.strip()] for line in f.readlines()]
-    part1 = None
-    part2 = None
-    flash_count = 0
-    for n in range(1000):
-        flashers = simulate()
-        flash_count += len(flashers)
-        if n == 99:
-            part1 = flash_count
-        if len(flashers) == 100 and part2 is None:
-            part2 = n + 1
-        if part1 and part2:
-            break
-    print(part1)
-    print(part2)
+        data = Matrix.from_string(f.read(), '')
+    data_copy = copy(data)
+    print(sum(len(simulate(data_copy)) for _ in range(100)))
+    i = 0
+    flashed = set()
+    while len(flashed) != 100:
+        flashed = simulate(data)
+        i += 1
+    print(i)
 
 
 if __name__ == '__main__':
