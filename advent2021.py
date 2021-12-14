@@ -1,6 +1,7 @@
 from collections import Counter, defaultdict
 from copy import copy, deepcopy
 from functools import reduce
+from itertools import takewhile
 from math import prod
 
 
@@ -369,7 +370,7 @@ def day11():
 
 
 def day12():
-    def traverse1(graph, completed, path):
+    def traverse(graph, completed, path, allow_twice=False, used_twice=False):
         current = path[-1]
         if current == 'end':
             completed.append(path)
@@ -377,19 +378,9 @@ def day12():
             options = graph[current]
             for option in options:
                 if option.isupper() or option not in path:
-                    traverse1(graph, completed, path + [option])
-
-    def traverse2(graph, completed, path, used_twice):
-        current = path[-1]
-        if current == 'end':
-            completed.append(path)
-        else:
-            options = graph[current]
-            for option in options:
-                if option.isupper() or option not in path:
-                    traverse2(graph, completed, path + [option], used_twice)
-                elif not used_twice and option != 'start':
-                    traverse2(graph, completed, path + [option], True)
+                    traverse(graph, completed, path + [option], allow_twice, used_twice)
+                elif allow_twice and not used_twice and option != 'start':
+                    traverse(graph, completed, path + [option], allow_twice, True)
 
     with open('12.txt') as f:
         entries = [line.strip().split('-') for line in f.readlines()]
@@ -398,43 +389,32 @@ def day12():
         network[entry[0]].append(entry[1])
         network[entry[1]].append(entry[0])
     paths1 = []
-    traverse1(network, paths1, ['start'])
+    traverse(network, paths1, ['start'])
     print(len(paths1))
     paths2 = []
-    traverse2(network, paths2, ['start'], False)
+    traverse(network, paths2, ['start'], True)
     print(len(paths2))
 
 
 def day13():
     def do_fold(paper, instruction):
         fold_at = int(instruction[1])
-        if instruction[0] == 'x':
-            for dot in paper:
-                if dot[0] > fold_at:
-                    dot[0] = fold_at - dot[0] + fold_at
-        if instruction[0] == 'y':
-            for dot in paper:
-                if dot[1] > fold_at:
-                    dot[1] = fold_at - dot[1] + fold_at
+        coord_index = 0 if instruction[0] == 'x' else 1
+        for dot in paper:
+            if dot[coord_index] > fold_at:
+                dot[coord_index] = 2 * fold_at - dot[coord_index]
 
-    dots = []
-    folds = []
     with open('13.txt') as f:
-        for line in f:
-            if line == '\n':
-                break
-            dots.append([int(val) for val in line.strip().split(',')])
-        for line in f:
-            folds.append(line.strip().strip('fold along ').split('='))
+        dots = [[int(val) for val in line.strip().split(',')] for line in takewhile(lambda l: l != '\n', f)]
+        folds = [line.strip().strip('fold along ').split('=') for line in f]
     do_fold(dots, folds[0])
     print(len(set((dot[0], dot[1]) for dot in dots)))
     for fold in folds[1:]:
         do_fold(dots, fold)
     dot_set = set((dot[0], dot[1]) for dot in dots)
-    max_x = max((dot[0] for dot in dot_set))
-    max_y = max((dot[1] for dot in dot_set))
-    for i in range(max_y + 1):
-        print(''.join('#' if (j, i) in dot_set else ' ' for j in range(max_x + 1)))
+    x_range, y_range = max(x for x, y in dots) + 1, max(y for x, y in dots) + 1
+    for y in range(y_range):
+        print(''.join('#' if (x, y) in dot_set else ' ' for x in range(x_range)))
 
 
 if __name__ == '__main__':
