@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from copy import copy, deepcopy
 from functools import reduce
 from math import prod
@@ -368,5 +368,42 @@ def day11():
     print(i)
 
 
+def day12():
+    def traverse1(graph, completed, path):
+        current = path[-1]
+        if current == 'end':
+            completed.append(path)
+        else:
+            options = graph[current]
+            for option in options:
+                if option.isupper() or option not in path:
+                    traverse1(graph, completed, path + [option])
+
+    def traverse2(graph, completed, path, used_twice):
+        current = path[-1]
+        if current == 'end':
+            completed.append(path)
+        else:
+            options = graph[current]
+            for option in options:
+                if option.isupper() or option not in path:
+                    traverse2(graph, completed, path + [option], used_twice)
+                elif not used_twice and option != 'start':
+                    traverse2(graph, completed, path + [option], True)
+
+    with open('12.txt') as f:
+        entries = [line.strip().split('-') for line in f.readlines()]
+    network = defaultdict(list)
+    for entry in entries:
+        network[entry[0]].append(entry[1])
+        network[entry[1]].append(entry[0])
+    paths1 = []
+    traverse1(network, paths1, ['start'])
+    print(len(paths1))
+    paths2 = []
+    traverse2(network, paths2, ['start'], False)
+    print(len(paths2))
+
+
 if __name__ == '__main__':
-    day11()
+    day12()
