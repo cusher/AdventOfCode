@@ -418,47 +418,30 @@ def day13():
 
 
 def day14():
-    def onepass(start, entries):
-        temp = ''
-        for i in range(len(start) - 1):
-            temp += start[i]
-            pair = start[i] + start[i + 1]
-            if pair in entries:
-                temp += entries[pair]
-        temp += start[-1]
-        return temp
-
-    def fastpass(counts, entries, charcounts):
-        temp = Counter(counts)
-        for pair, num in counts.items():
-            if pair in entries and num > 0:
-                temp[pair[0] + entries[pair]] += num
-                temp[entries[pair] + pair[1]] += num
-                charcounts[entries[pair]] += num
+    def fast_pass(pair_counts, mapping, char_counts):
+        temp = Counter(pair_counts)
+        for pair, num in pair_counts.items():
+            if pair in mapping and num > 0:
+                char_counts[mapping[pair]] += num
+                temp[pair[0] + mapping[pair]] += num
+                temp[mapping[pair] + pair[1]] += num
                 temp[pair] -= num
-                if temp[pair] == 0:
-                    del temp[pair]
         return temp
 
     with open('14.txt') as f:
         start = f.readline().strip()
         f.readline()
-        entries = dict(line.strip().split(' -> ', 1) for line in f.readlines())
-    temp = start
-    for i in range(10):
-        temp = onepass(temp, entries)
-    count = Counter(temp)
-    print(count.most_common()[0][1] - count.most_common()[-1][1])
+        entries = dict(line.strip().split(' -> ') for line in f.readlines())
+    chars = Counter(start)
     pairs = Counter()
-    charcounts = Counter()
     for i in range(len(start) - 1):
-        pair = start[i] + start[i + 1]
-        pairs[pair] += 1
-        charcounts[start[i]] += 1
-    charcounts[start[-1]] += 1
-    for i in range(40):
-        pairs = fastpass(pairs, entries, charcounts)
-    print(charcounts.most_common()[0][1] - charcounts.most_common()[-1][1])
+        pairs[start[i] + start[i + 1]] += 1
+    for i in range(10):
+        pairs = fast_pass(pairs, entries, chars)
+    print(chars.most_common()[0][1] - chars.most_common()[-1][1])
+    for i in range(30):
+        pairs = fast_pass(pairs, entries, chars)
+    print(chars.most_common()[0][1] - chars.most_common()[-1][1])
 
 
 if __name__ == '__main__':
