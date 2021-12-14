@@ -405,5 +405,37 @@ def day12():
     print(len(paths2))
 
 
+def day13():
+    def do_fold(paper, instruction):
+        fold_at = int(instruction[1])
+        if instruction[0] == 'x':
+            for dot in paper:
+                if dot[0] > fold_at:
+                    dot[0] = fold_at - dot[0] + fold_at
+        if instruction[0] == 'y':
+            for dot in paper:
+                if dot[1] > fold_at:
+                    dot[1] = fold_at - dot[1] + fold_at
+
+    dots = []
+    folds = []
+    with open('13.txt') as f:
+        for line in f:
+            if line == '\n':
+                break
+            dots.append([int(val) for val in line.strip().split(',')])
+        for line in f:
+            folds.append(line.strip().strip('fold along ').split('='))
+    do_fold(dots, folds[0])
+    print(len(set((dot[0], dot[1]) for dot in dots)))
+    for fold in folds[1:]:
+        do_fold(dots, fold)
+    dot_set = set((dot[0], dot[1]) for dot in dots)
+    max_x = max((dot[0] for dot in dot_set))
+    max_y = max((dot[1] for dot in dot_set))
+    for i in range(max_y + 1):
+        print(''.join('#' if (j, i) in dot_set else ' ' for j in range(max_x + 1)))
+
+
 if __name__ == '__main__':
-    day12()
+    day13()
