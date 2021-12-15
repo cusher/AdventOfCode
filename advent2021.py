@@ -483,42 +483,29 @@ def day14():
 
 def day15():
     def dijkstra(graph, start_node, end_node):
-        previous = {}
         dist = {node: inf for node in graph.indexes()}
         dist[start_node] = 0
         unvisited = PriorityQueue(dist)
         while unvisited:
             visiting = unvisited.pop_task()
             if visiting == end_node:
-                break
+                return dist[end_node]
             for neighbor in graph.adjacent(visiting):
                 new_dist = dist[visiting] + graph[neighbor]
                 if new_dist < dist[neighbor]:
                     dist[neighbor] = new_dist
-                    previous[neighbor] = visiting
                     unvisited.remove_task(neighbor)
                     unvisited.add_task(neighbor, new_dist)
-        return previous, dist
 
     with open('15.txt') as f:
         graph = Matrix.from_string(f.read(), '')
     start = (0, 0)
     end = (len(graph.data)) - 1, (len(graph.data[0])) - 1
-    prev_n, shortest = dijkstra(graph, start, end)
-    print(shortest[end])
-    big_data = []
-    for n_row in range(5):
-        for row in graph.data:
-            big_row = []
-            for n_col in range(5):
-                for col in row:
-                    temp = (col + n_col + n_row - 1) % 9 + 1
-                    big_row.append(temp)
-            big_data.append(big_row)
-    big_graph = Matrix(big_data)
-    end = (len(big_graph.data)) - 1, (len(big_graph.data[0])) - 1
-    prev_n, shortest = dijkstra(big_graph, start, end)
-    print(shortest[end])
+    print(dijkstra(graph, start, end))
+    graph = Matrix([[(col + n_col + n_row - 1) % 9 + 1 for n_col in range(5) for col in row]
+                    for n_row in range(5) for row in graph.data])
+    end = (len(graph.data)) - 1, (len(graph.data[0])) - 1
+    print(dijkstra(graph, start, end))
 
 
 if __name__ == '__main__':
