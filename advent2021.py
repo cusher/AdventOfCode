@@ -1,8 +1,9 @@
 from collections import Counter, defaultdict
 from copy import copy, deepcopy
 from functools import reduce
-from itertools import takewhile
-from math import prod
+from heapq import heappop, heappush
+from itertools import count, takewhile
+from math import inf, prod
 
 
 class Matrix:
@@ -49,6 +50,42 @@ class Matrix:
         if diagonals:
             options.extend([(i - 1, j - 1), (i - 1, j + 1), (i + 1, j - 1), (i + 1, j + 1)])
         return [position for position in options if self.in_bounds(position)]
+
+
+# Adapted from https://docs.python.org/3.7/library/heapq.html#priority-queue-implementation-notes
+class PriorityQueue:
+    REMOVED = '<removed-task>'  # placeholder for a removed task
+
+    def __init__(self, initial_data=None):
+        self.pq = []  # list of entries arranged in a heap
+        self.entry_finder = {}  # mapping of tasks to entries
+        self.counter = count()  # unique sequence count
+        if initial_data:
+            for k, v in initial_data.items():
+                self.add_task(k, v)
+
+    def add_task(self, task, priority=0):
+        'Add a new task or update the priority of an existing task'
+        if task in self.entry_finder:
+            self.remove_task(task)
+        count = next(self.counter)
+        entry = [priority, count, task]
+        self.entry_finder[task] = entry
+        heappush(self.pq, entry)
+
+    def remove_task(self, task):
+        'Mark an existing task as REMOVED.  Raise KeyError if not found.'
+        entry = self.entry_finder.pop(task)
+        entry[-1] = PriorityQueue.REMOVED
+
+    def pop_task(self):
+        'Remove and return the lowest priority task. Raise KeyError if empty.'
+        while self.pq:
+            priority, count, task = heappop(self.pq)
+            if task is not PriorityQueue.REMOVED:
+                del self.entry_finder[task]
+                return task
+        raise KeyError('pop from an empty priority queue')
 
 
 def day1():
@@ -444,5 +481,45 @@ def day14():
     print(chars.most_common()[0][1] - chars.most_common()[-1][1])
 
 
+def day15():
+    def dijkstra(graph, start_node, end_node):
+        previous = {}
+        dist = {node: inf for node in graph.indexes()}
+        dist[start_node] = 0
+        unvisited = PriorityQueue(dist)
+        while unvisited:
+            visiting = unvisited.pop_task()
+            if visiting == end_node:
+                break
+            for neighbor in graph.adjacent(visiting):
+                new_dist = dist[visiting] + graph[neighbor]
+                if new_dist < dist[neighbor]:
+                    dist[neighbor] = new_dist
+                    previous[neighbor] = visiting
+                    unvisited.remove_task(neighbor)
+                    unvisited.add_task(neighbor, new_dist)
+        return previous, dist
+
+    with open('15.txt') as f:
+        graph = Matrix.from_string(f.read(), '')
+    start = (0, 0)
+    end = (len(graph.data)) - 1, (len(graph.data[0])) - 1
+    prev_n, shortest = dijkstra(graph, start, end)
+    print(shortest[end])
+    big_data = []
+    for n_row in range(5):
+        for row in graph.data:
+            big_row = []
+            for n_col in range(5):
+                for col in row:
+                    temp = (col + n_col + n_row - 1) % 9 + 1
+                    big_row.append(temp)
+            big_data.append(big_row)
+    big_graph = Matrix(big_data)
+    end = (len(big_graph.data)) - 1, (len(big_graph.data[0])) - 1
+    prev_n, shortest = dijkstra(big_graph, start, end)
+    print(shortest[end])
+
+
 if __name__ == '__main__':
-    day14()
+    day15()
