@@ -508,5 +508,72 @@ def day15():
     print(dijkstra(graph, start, end))
 
 
+def day16():
+    def read_packet(binstring, start, version_sum):
+        if int(binstring[start:len(binstring)], 2) == 0:
+            return len(binstring) - start, version_sum
+        i = start
+        version = int(binstring[i:i + 3], 2)
+        i += 3
+        version_sum += version
+        type_id = int(binstring[i:i + 3], 2)
+        i += 3
+        value = 0
+        if type_id == 4:
+            read_literal = True
+            literal = ''
+            while read_literal:
+                read_literal = bool(int(binstring[i:i + 1], 2))
+                i += 1
+                literal += binstring[i:i + 4]
+                i += 4
+            literal = int(literal, 2)
+            value = literal
+        else:
+            length_type = int(binstring[i:i + 1], 2)
+            i += 1
+            values = []
+            if length_type:
+                n_sub_packets = int(binstring[i:i + 11], 2)
+                i += 11
+                for j in range(n_sub_packets):
+                    n, version_sum, value = read_packet(binstring, i, version_sum)
+                    values.append(value)
+                    i += n
+            else:
+                length = int(binstring[i:i + 15], 2)
+                i += 15
+                n = 0
+                while n < length:
+                    n_more, version_sum, value = read_packet(binstring, i + n, version_sum)
+                    values.append(value)
+                    n += n_more
+                i += length
+            if type_id == 0:
+                value = sum(values)
+            elif type_id == 1:
+                value = prod(values)
+            elif type_id == 2:
+                value = min(values)
+            elif type_id == 3:
+                value = max(values)
+            elif type_id == 5:
+                value = int(values[0] > values[1])
+            elif type_id == 6:
+                value = int(values[0] < values[1])
+            elif type_id == 7:
+                value = int(values[0] == values[1])
+        return i - start, version_sum, value
+
+    with open('16.txt') as f:
+        hexstring = f.read().strip()
+    binstring = bin(int(hexstring, 16))[2:].zfill(len(hexstring) * 4)
+    i = 0
+    version_sum = 0
+    n, version_sum, value = read_packet(binstring, i, version_sum)
+    print(version_sum)
+    print(value)
+
+
 if __name__ == '__main__':
-    day15()
+    day16()
