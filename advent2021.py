@@ -567,5 +567,50 @@ def day16():
     print(value)
 
 
+def day17():
+    def x_pos_at(x_vel, step):
+        temp = x_vel - step if step < x_vel else 0
+        return (x_vel ** 2 + x_vel - temp ** 2 - temp) / 2
+
+    def y_pos_at(y_vel, step):
+        if step <= y_vel:
+            return x_pos_at(y_vel, step)
+        else:
+            peak = x_pos_at(y_vel, y_vel)
+            remainder = step - y_vel - 1
+            return peak - x_pos_at(remainder, remainder)
+
+    def possible_y_velocities(y_area):
+        options = defaultdict(list)
+        for i in range(y_area[0], -y_area[0]):
+            for j in range(0, -y_area[0] * 2 + 1):
+                if y_area[0] <= y_pos_at(i, j) <= y_area[1]:
+                    options[i].append(j)
+        return options
+
+    def possible_x_velocities(x_area, cap):
+        options = defaultdict(list)
+        for i in range(x_area[1] + 1):
+            for j in range(cap + 1):
+                if x_area[0] <= x_pos_at(i, j) <= x_area[1]:
+                    options[i].append(j)
+        return options
+
+    with open('17.txt') as f:
+        areas = [[int(v) for v in r.split('..')] for r in f.readline().strip("target area: x=").split(', y=')]
+    vy_options = possible_y_velocities(areas[1])
+    biggest_step = max(reduce(lambda a, b: a | set(b), vy_options.values(), set()))
+    vx_options = possible_x_velocities(areas[0], biggest_step)
+    max_y_vel = 0
+    speeds = set()
+    for vy, y_steps in vy_options.items():
+        for vx, x_steps in vx_options.items():
+            if set(x_steps) & set(y_steps):
+                max_y_vel = vy
+                speeds.add((vx, vy))
+    print(int(y_pos_at(max_y_vel, max_y_vel)))
+    print(len(speeds))
+
+
 if __name__ == '__main__':
-    day16()
+    day17()
