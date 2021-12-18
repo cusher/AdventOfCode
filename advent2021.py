@@ -615,73 +615,42 @@ def day17():
 def day18():
     def parse_tree(string, i):
         if string[i] == '[':
-            i += 1
-            left, i = parse_tree(string, i)
-            assert string[i] == ','
-            i += 1
-            right, i = parse_tree(string, i)
+            left, i = parse_tree(string, i + 1)
+            right, i = parse_tree(string, i + 1)
             return [left, right], i + 1
         else:
-            split_at_a = string[i:].find(',')
-            if split_at_a == -1:
-               split_at_a = len(string)
-            split_at_b = string[i:].find(']')
-            if split_at_b == -1:
-               split_at_b = len(string)
-            n = min(split_at_a, split_at_b)
+            n = min(string[i:].find(char) for char in (',', ']') if char in string[i:])
             val = int(string[i:i + n])
             return val, i + n
 
-    def is_leaf(node):
-        return isinstance(node[0], int) and isinstance(node[1], int)
-
-    def add_edge(tree, number, right):
-        i = int(right)
+    def add_to_edge(tree, i, number):
         if isinstance(tree[i], int):
             tree[i] += number
         else:
-            add_edge(tree[i], number, right)
+            add_to_edge(tree[i], i, number)
 
     def get_exploder(tree, depth):
         for i in (0, 1):
             if isinstance(tree[i], int):
                 pass
-            elif is_leaf(tree[i]):
+            elif isinstance(tree[i][0], int) and isinstance(tree[i][1], int):
                 if depth >= 4:
                     exploded = tree[i]
                     tree[i] = 0
-                    if i == 0:
-                        if exploded[1] != 0:
-                            if isinstance(tree[1], int):
-                                tree[1] += exploded[1]
-                            else:
-                                add_edge(tree[1], exploded[1], 0)
-                        return [exploded[0], 0]
-                    else:
-                        if exploded[0] != 0:
-                            if isinstance(tree[0], int):
-                                tree[0] += exploded[0]
-                            else:
-                                add_edge(tree[0], exploded[0], 1)
-                        return [0, exploded[1]]
+                    return do_explode(tree, i, exploded)
             else:
                 exploded = get_exploder(tree[i], depth + 1)
                 if exploded is None:
                     continue
-                if i == 0:
-                    if exploded[1] != 0:
-                        if isinstance(tree[1], int):
-                            tree[1] += exploded[1]
-                        else:
-                            add_edge(tree[1], exploded[1], 0)
-                    return [exploded[0], 0]
-                else:
-                    if exploded[0] != 0:
-                        if isinstance(tree[0], int):
-                            tree[0] += exploded[0]
-                        else:
-                            add_edge(tree[0], exploded[0], 1)
-                    return [0, exploded[1]]
+                return do_explode(tree, i, exploded)
+
+    def do_explode(tree, i, exploded):
+        n = int(not i)
+        if isinstance(tree[n], int):
+            tree[n] += exploded[n]
+        else:
+            add_to_edge(tree[n], i, exploded[n])
+        return [0, exploded[i]] if i else [exploded[i], 0]
 
     def get_splitter(tree):
         for i in (0, 1):
@@ -689,19 +658,16 @@ def day18():
                 if tree[i] >= 10:
                     tree[i] = [floor(tree[i] / 2), ceil(tree[i] / 2)]
                     return True
-            else:
-                split = get_splitter(tree[i])
-                if split is not None:
-                    return split
+            elif get_splitter(tree[i]):
+                return True
 
     def add_reduce(a, b):
         tree = [a, b]
         last_result = True
         while last_result:
             last_result = get_exploder(tree, 1)
-            if last_result:
-                continue
-            last_result = get_splitter(tree)
+            if not last_result:
+                last_result = get_splitter(tree)
         return tree
 
     def magnitude(tree):
