@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 from functools import reduce
 from heapq import heappop, heappush
 from itertools import count, takewhile
-from math import inf, prod
+from math import ceil, floor, inf, prod
 
 
 class Matrix:
@@ -612,5 +612,110 @@ def day17():
     print(len(speeds))
 
 
+def day18():
+    def parse_tree(string, i):
+        if string[i] == '[':
+            i += 1
+            left, i = parse_tree(string, i)
+            assert string[i] == ','
+            i += 1
+            right, i = parse_tree(string, i)
+            return [left, right], i + 1
+        else:
+            split_at_a = string[i:].find(',')
+            if split_at_a == -1:
+               split_at_a = len(string)
+            split_at_b = string[i:].find(']')
+            if split_at_b == -1:
+               split_at_b = len(string)
+            n = min(split_at_a, split_at_b)
+            val = int(string[i:i + n])
+            return val, i + n
+
+    def is_leaf(node):
+        return isinstance(node[0], int) and isinstance(node[1], int)
+
+    def add_edge(tree, number, right):
+        i = int(right)
+        if isinstance(tree[i], int):
+            tree[i] += number
+        else:
+            add_edge(tree[i], number, right)
+
+    def get_exploder(tree, depth):
+        for i in (0, 1):
+            if isinstance(tree[i], int):
+                pass
+            elif is_leaf(tree[i]):
+                if depth >= 4:
+                    exploded = tree[i]
+                    tree[i] = 0
+                    if i == 0:
+                        if exploded[1] != 0:
+                            if isinstance(tree[1], int):
+                                tree[1] += exploded[1]
+                            else:
+                                add_edge(tree[1], exploded[1], 0)
+                        return [exploded[0], 0]
+                    else:
+                        if exploded[0] != 0:
+                            if isinstance(tree[0], int):
+                                tree[0] += exploded[0]
+                            else:
+                                add_edge(tree[0], exploded[0], 1)
+                        return [0, exploded[1]]
+            else:
+                exploded = get_exploder(tree[i], depth + 1)
+                if exploded is None:
+                    continue
+                if i == 0:
+                    if exploded[1] != 0:
+                        if isinstance(tree[1], int):
+                            tree[1] += exploded[1]
+                        else:
+                            add_edge(tree[1], exploded[1], 0)
+                    return [exploded[0], 0]
+                else:
+                    if exploded[0] != 0:
+                        if isinstance(tree[0], int):
+                            tree[0] += exploded[0]
+                        else:
+                            add_edge(tree[0], exploded[0], 1)
+                    return [0, exploded[1]]
+
+    def get_splitter(tree):
+        for i in (0, 1):
+            if isinstance(tree[i], int):
+                if tree[i] >= 10:
+                    tree[i] = [floor(tree[i] / 2), ceil(tree[i] / 2)]
+                    return True
+            else:
+                split = get_splitter(tree[i])
+                if split is not None:
+                    return split
+
+    def add_reduce(a, b):
+        tree = [a, b]
+        last_result = True
+        while last_result:
+            last_result = get_exploder(tree, 1)
+            if last_result:
+                continue
+            last_result = get_splitter(tree)
+        return tree
+
+    def magnitude(tree):
+        if isinstance(tree, int):
+            return tree
+        return 3 * magnitude(tree[0]) + 2 * magnitude(tree[1])
+
+    with open('18.txt') as f:
+        entries = [line.strip() for line in f.readlines()]
+    trees = [parse_tree(entry, 0)[0] for entry in entries]
+    print(magnitude(reduce(add_reduce, map(deepcopy, trees))))
+    mags = [magnitude(add_reduce(deepcopy(a), deepcopy(b))) for a in trees for b in trees if a != b]
+    print(max(mags))
+
+
 if __name__ == '__main__':
-    day17()
+    day18()
