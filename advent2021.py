@@ -720,5 +720,50 @@ def day21():
     print(max(temp))
 
 
+def day22():
+    def overlap_1d(a, b):
+        if a[0] <= b[1] <= a[1] or b[0] <= a[1] <= b[1]:
+            return max(a[0], b[0]), min(a[1], b[1])
+
+    def overlap(a, b):
+        overlaps = [overlap_1d(a[i], b[i]) for i in range(3)]
+        return overlaps if all(overlaps) else None
+
+    def volume(box):
+        return prod(box[i][1] - box[i][0] + 1 for i in range(3))
+
+    procedure = []
+    with open('22.txt') as f:
+        entries = [line.strip() for line in f.readlines()]
+        for entry in entries:
+            bit = 1 if entry.split(' ')[0] == 'on' else 0
+            pos = [[int(val) for val in coord.split('=')[1].split('..')] for coord in entry.split(' ')[1].split(',')]
+            procedure.append((bit, pos))
+    on_cubes = set()
+    for step in procedure:
+        for i in range(max(step[1][0][0], -50), min(step[1][0][1], 50) + 1):
+            for j in range(max(step[1][1][0], -50), min(step[1][1][1], 50) + 1):
+                for k in range(max(step[1][2][0], -50), min(step[1][2][1], 50) + 1):
+                    if step[0]:
+                        on_cubes.add((i, j, k))
+                    elif (i, j, k) in on_cubes:
+                        on_cubes.remove((i, j, k))
+    print(len(on_cubes))
+    regions = []
+    for step in procedure:
+        new_regions = []
+        if step[0]:
+            new_regions.append(step)
+        for region in regions:
+            region_overlap = overlap(step[1], region[1])
+            if region_overlap:
+                if region[0] > 0:
+                    new_regions.append((-1, region_overlap))
+                else:
+                    new_regions.append((1, region_overlap))
+        regions.extend(new_regions)
+    print(sum(volume(region[1]) * region[0] for region in regions))
+
+
 if __name__ == '__main__':
-    day21()
+    day22()
