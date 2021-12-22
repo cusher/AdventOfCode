@@ -684,46 +684,39 @@ def day18():
 
 
 def day21():
-    def deterministic_die(n):
-        i = 0
-        while True:
-            i += 1
-            yield (i - 1) % n + 1
-
     def deterministic_game(positions):
         scores = [0, 0]
-        dice = deterministic_die(100)
-        turn = 0
-        while True:
+        roll = -3
+        for turn in count(0):
             player = turn % 2
-            roll = sum(next(dice) for _ in range(3))
+            roll += 9
             positions[player] = (positions[player] + roll - 1) % 10 + 1
             scores[player] += positions[player]
-            turn += 1
             if max(scores) >= 1000:
-                break
-        return min(scores) * turn * 3
+                return min(scores) * (turn + 1) * 3
 
-    odds_3d3 = {3: 1, 4: 3, 5: 6, 6: 7, 7: 6, 8: 3, 9: 1}
+    odds_3d3 = ((3, 1), (4, 3), (5, 6), (6, 7), (7, 6), (8, 3), (9, 1))
+    win_outcomes = ((1, 0), (0, 1))
 
     def dirac_turn(positions, scores, player):
-        outcomes = [tuple(v * wins for wins in dirac_roll(positions.copy(), scores.copy(), player, k)) for k, v in odds_3d3.items()]
-        return tuple(sum(x) for x in zip(*outcomes))
+        wins_0, wins_1 = 0, 0
+        for roll, chance in odds_3d3:
+            sub_outcomes = dirac_roll(positions.copy(), scores.copy(), player, roll)
+            wins_0 += sub_outcomes[0] * chance
+            wins_1 += sub_outcomes[1] * chance
+        return wins_0, wins_1
 
     def dirac_roll(positions, scores, player, roll):
         positions[player] = (positions[player] + roll - 1) % 10 + 1
         scores[player] += positions[player]
-        if scores[0] >= 21:
-            return 1, 0
-        elif scores[1] >= 21:
-            return 0, 1
-        else:
-            return dirac_turn(positions, scores, int(not player))
+        if scores[player] >= 21:
+            return win_outcomes[player]
+        return dirac_turn(positions, scores, not player)
 
     with open('21.txt') as f:
-        positions = [int(line.strip().split(': ')[1]) for line in f.readlines()]
-    print(deterministic_game(positions.copy()))
-    temp = dirac_turn(positions, [0, 0], 0)
+        starts = [int(line.strip().split(': ')[1]) for line in f.readlines()]
+    print(deterministic_game(starts.copy()))
+    temp = dirac_turn(starts, [0, 0], 0)
     print(max(temp))
 
 
