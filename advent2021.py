@@ -765,5 +765,94 @@ def day22():
     print(sum(volume(region[1]) * region[0] for region in regions))
 
 
+def day23():
+    costs = {'A': 1, 'B': 10, 'C': 100, 'D': 1000}
+    rooms_x = {'A': 2, 'B': 4, 'C': 6, 'D': 8}
+    valid_hall_spots = tuple((0, i) for i in (0, 1, 3, 5, 7, 9, 10))
+
+    def hall_unblocked(board, to, from_i):
+        for i, piece in enumerate(board):
+            start_x = board[from_i][0][1]
+            end_x = to[1]
+            block_x = piece[0][1]
+            start_y = board[from_i][0][0]
+            block_y = piece[0][0]
+            if i != from_i and (start_x == block_x and block_y < start_y
+                                or block_y == 0 and (start_x <= block_x <= end_x or start_x >= block_x >= end_x)):
+                return False
+        return True
+
+    def room_open(board, x):
+        match = len(entries)
+        for piece in board:
+            if x == piece[0][1]:
+                if rooms_x[piece[1]] != piece[0][1]:
+                    return 0
+                match -= 1
+        return match
+
+    def game_done(board):
+        for piece in board:
+            if piece[0][1] != rooms_x[piece[1]]:
+                return False
+        return True
+
+    def piece_done(board, piece):
+        pos = piece[0]
+        y = pos[0]
+        x = pos[1]
+        return x == rooms_x[piece[1]] and all(p[0][1] != x or p[0][0] < y or p[1] == piece[1] for p in board)
+
+    def find_solutions(board, sequence):
+        cost = 0
+        board = board.copy()
+        succeeded = True
+        while succeeded:
+            succeeded = False
+            for i, piece in enumerate(board):
+                room_xp = rooms_x[piece[1]]
+                if piece[0][0] == 0 or piece[0][1] != room_xp:
+                    room_yp = room_open(board, room_xp)
+                    if room_yp and hall_unblocked(board, (room_yp, room_xp), i):
+                        move_cost = costs[piece[1]] * (room_yp + piece[0][0] + abs(piece[0][1] - room_xp))
+                        board[i] = ((room_yp, room_xp), piece[1])
+                        sequence = sequence + [(board.copy(), move_cost)]
+                        cost += move_cost
+                        if game_done(board):
+                            return cost, sequence
+                        succeeded = True
+                        break
+        branches = []
+        for i, piece in enumerate(board):
+            if piece[0][0] and not piece_done(board, piece):
+                for hall_spot in valid_hall_spots:
+                    if hall_unblocked(board, hall_spot, i):
+                        move_cost = costs[piece[1]] * (piece[0][0] + abs(piece[0][1] - hall_spot[1]))
+                        board_copy = board.copy()
+                        board_copy[i] = (hall_spot, piece[1])
+                        if True or board_copy not in search_pool:
+                            search_pool.append(board_copy)
+                            solution = find_solutions(board_copy, sequence + [(board_copy, move_cost)])
+                            if solution:
+                                branches.append((move_cost + solution[0], solution[1]))
+        if branches:
+            mm = min(branches, key=lambda x: x[0])
+            return cost + mm[0], mm[1]
+
+    with open('23.txt') as f:
+        entries = [line.strip().strip('###').split("#") for line in f.readlines()[2:4]]
+    board = [((i + 1, j * 2 + 2), val) for i, row in enumerate(entries) for j, val in enumerate(row)]
+    search_pool = [board]
+    val = find_solutions(board, [(board, 0)])
+    print(val)
+    print(sum(v[1] for v in val[1]))
+    entries[1:1] = [['D', 'C', 'B', 'A'], ['D', 'B', 'A', 'C']]
+    board = [((i + 1, j * 2 + 2), val) for i, row in enumerate(entries) for j, val in enumerate(row)]
+    print(board)
+    val = find_solutions(board, [(board, 0)])
+    print(val)
+    print(sum(v[1] for v in val[1]))
+
+
 if __name__ == '__main__':
-    day22()
+    day23()
