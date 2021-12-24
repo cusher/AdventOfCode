@@ -844,5 +844,104 @@ def day23():
     print(find_solutions(board))
 
 
+def day24():
+    def monad_transpiled(inputs):
+        z = 0
+        input_iter = iter(inputs)
+        for p in subroutine_params:
+            z = subroutine(next(input_iter), z, p[0], p[1], p[2])
+        return z
+
+    subroutine_params = [
+        (1, 13, 5),
+        (1, 15, 14),
+        (1, 15, 15),
+        (1, 11, 16),
+        (26, -16, 8),
+        (26, -11, 9),
+        (26, -6, 2),
+        (1, 11, 13),
+        (1, 10, 16),
+        (26, -10, 6),
+        (26, -8, 6),
+        (26, -11, 9),
+        (1, 12, 11),
+        (26, -15, 5)
+    ]
+
+    def subroutine(w, z, a, b, c):
+        if w - b == z % 26:
+            return int(z / a)
+        return int(z / a) * 26 + w + c
+
+    def subroutine_a(w, z, b, c):
+        if w - b == z % 26:
+            return z
+        return z * 26 + w + c
+
+    def subroutine_b(w, z, b, c):
+        if w - b == z % 26:
+            return int(z / 26)
+        return int(z / 26) * 26 + w + c
+
+    def alu_transpile(instructions):
+        py_code = [
+            'w, x, y, z = 0, 0, 0, 0',
+            'input_iter = iter(inputs)',
+        ]
+        for inst in instructions:
+            if inst[0] == 'inp':
+                py_code.append(inst[1] + ' = next(input_iter)')
+            elif inst[0] == 'add':
+                py_code.append(inst[1] + ' += ' + inst[2])
+            elif inst[0] == 'mul':
+                py_code.append(inst[1] + ' *= ' + inst[2])
+            elif inst[0] == 'div':
+                py_code.append(inst[1] + ' = int(' + inst[1] + ' / ' + inst[2] + ')')
+            elif inst[0] == 'mod':
+                py_code.append(inst[1] + ' %= ' + inst[2])
+            elif inst[0] == 'eql':
+                py_code.append(inst[1] + ' = int(' + inst[1] + ' == ' + inst[2] + ')')
+        py_code.append('return w, x, y, z')
+        return '\n'.join(['def transpiled(inputs):'] + ['    ' + statement for statement in py_code])
+
+    with open('24.txt') as f:
+        code = [line.strip().split(' ') for line in f.readlines()]
+    transpiled_code = alu_transpile(code)
+
+    possible_z_outs = [{0}]
+    for p in subroutine_params[:-1]:
+        next_z_outs = set()
+        current_subroutine = subroutine_b if p[0] == 26 else subroutine_a
+        for w in range(1, 10):
+            for z in possible_z_outs[-1]:
+                next_z_outs.add(current_subroutine(w, z, p[1], p[2]))
+        possible_z_outs.append(next_z_outs)
+
+    next_desired_z_min = {0}
+    next_desired_z_max = {0}
+    min_digits = []
+    max_digits = []
+    for p, z_outs in zip(reversed(subroutine_params), reversed(possible_z_outs)):
+        min_outcomes = []
+        max_outcomes = []
+        current_subroutine = subroutine_b if p[0] == 26 else subroutine_a
+        for w in range(1, 10):
+            for last_z in z_outs:
+                next_z = current_subroutine(w, last_z, p[1], p[2])
+                if next_z in next_desired_z_min:
+                    min_outcomes.append((w, last_z))
+                if next_z in next_desired_z_max:
+                    max_outcomes.append((w, last_z))
+        best_min_outcome = min(min_outcomes, key=lambda x: x[0])
+        best_max_outcome = max(max_outcomes, key=lambda x: x[0])
+        min_digits.append(best_min_outcome[0])
+        max_digits.append(best_max_outcome[0])
+        next_desired_z_min = set(outcome[1] for outcome in min_outcomes if outcome[0] == best_min_outcome[0])
+        next_desired_z_max = set(outcome[1] for outcome in max_outcomes if outcome[0] == best_max_outcome[0])
+    print(''.join(str(d) for d in reversed(max_digits)))
+    print(''.join(str(d) for d in reversed(min_digits)))
+
+
 if __name__ == '__main__':
-    day23()
+    day24()
