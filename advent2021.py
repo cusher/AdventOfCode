@@ -2,7 +2,7 @@ from collections import Counter, defaultdict
 from copy import copy, deepcopy
 from functools import reduce
 from heapq import heappop, heappush
-from itertools import count, takewhile
+from itertools import count, takewhile, chain, combinations, permutations, product
 from math import ceil, floor, inf, prod
 
 
@@ -681,6 +681,107 @@ def day18():
     print(magnitude(reduce(add_reduce, map(deepcopy, trees))))
     mags = [magnitude(add_reduce(deepcopy(a), deepcopy(b))) for a in trees for b in trees if a != b]
     print(max(mags))
+
+
+def day19():
+    def rotate(points, basis):
+        return [tuple(sum(p[j] * basis[j][i] for j in range(3)) for i in range(3)) for p in points]
+
+    def diff(a, b):
+        return a[0] - b[0], a[1] - b[1], a[2] - b[2]
+
+    def translate(points, new_origin):
+        return [diff(p, new_origin) for p in points]
+
+    def gen_bases():
+        def cross_product(a, b):
+            return a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]
+
+        bases = []
+        for i, j in permutations(range(3), 2):
+            for v, w in product((1, -1), repeat=2):
+                xb = tuple(v if k == i else 0 for k in range(3))
+                yb = tuple(w if k == j else 0 for k in range(3))
+                zb = cross_product(xb, yb)
+                bases.append((xb, yb, zb))
+        return bases
+
+    def find_overlap(a, b, basis_opts):
+        a_set = set(a)
+        for basis in basis_opts:
+            rotated = rotate(b, basis)
+            for m, point in enumerate(rotated):
+                for n, start in enumerate(a):
+                    new_origin = diff(point, start)
+                    transformed = translate(rotated, new_origin)
+                    overlap = len(a_set & set(transformed))
+                    if overlap >= 12:
+                        return transformed, new_origin
+        return None, None
+
+    def manhattan_distance(a, b):
+        return sum(abs(a[i] - b[i]) for i in range(3))
+
+    with open('19.txt') as f:
+        entries = [[tuple(int(v) for v in pos.split(',')) for pos in scanner.split('\n')[1:]]
+                   for scanner in f.read().split('\n\n')]
+    basis_opts = gen_bases()
+    mapped = {0}
+    to_map = set(range(1, len(entries)))
+    checked = defaultdict(set)
+    scanner_positions = set()
+    while to_map:
+        for j in to_map:
+            found_map = False
+            for i in mapped:
+                if i not in checked[j]:
+                    transformed, scanner = find_overlap(entries[i], entries[j], basis_opts)
+                    if transformed:
+                        entries[j] = transformed
+                        scanner_positions.add(scanner)
+                        found_map = True
+                        mapped.add(j)
+                        break
+                    checked[j].add(i)
+            if found_map:
+                to_map.remove(j)
+                break
+    all_items = list(set(chain.from_iterable(entries)))
+    distances = [manhattan_distance(pair[0], pair[1]) for pair in combinations(scanner_positions, 2)]
+    print(len(all_items))
+    print(max(distances))
+
+
+def day20():
+    def process(in_grid, enhance_table, odd):
+        out_grid = []
+        for i in range(-1, len(in_grid) + 1):
+            out_line = ''
+            for j in range(-1, len(in_grid[0]) + 1):
+                code = ''
+                for e in ((i + u, j + v) for u in (-1, 0, +1) for v in (-1, 0, +1)):
+                    if odd and enhance_table[0] == '#':
+                        if 0 <= e[0] < len(in_grid) and 0 <= e[1] < len(in_grid[e[0]]) and in_grid[e[0]][e[1]] == '.':
+                            code += '0'
+                        else:
+                            code += '1'
+                    else:
+                        if 0 <= e[0] < len(in_grid) and 0 <= e[1] < len(in_grid[e[0]]) and in_grid[e[0]][e[1]] == '#':
+                            code += '1'
+                        else:
+                            code += '0'
+                out_line += enhance_table[int(code, 2)]
+            out_grid.append(out_line)
+        return out_grid
+
+    with open('20.txt') as f:
+        algorithm = f.readline().strip()
+        f.readline()
+        grid = [line.strip() for line in f.readlines()]
+    for i in range(50):
+        grid = process(grid, algorithm, bool(i % 2))
+        if i == 1 or i == 49:
+            print(sum([1 for row in grid for val in row if val == '#']))
 
 
 def day21():
