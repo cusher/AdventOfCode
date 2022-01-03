@@ -6,12 +6,12 @@ from itertools import count, takewhile, chain, combinations, permutations, produ
 from math import ceil, floor, inf, prod
 
 
-class Matrix:
+class Grid:
     def __init__(self, data):
         self.data = data
 
     def __copy__(self):
-        return Matrix([row.copy() for row in self.data])
+        return self.__class__([row.copy() for row in self.data])
 
     def __getitem__(self, key):
         return self.data[key[0]][key[1]]
@@ -23,26 +23,39 @@ class Matrix:
         return '\n'.join(' '.join([str(item) for item in row]) for row in self.data)
 
     @classmethod
-    def from_string(cls, string, delimiter=None):
-        if delimiter == '':
-            return cls([[int(val) for val in line] for line in string.split('\n')])
-        # No delimiter = split on whitespace
-        return cls([[int(val) for val in line.split(delimiter)] for line in string.split('\n')])
+    def from_dimensions(cls, rows, cols):
+        return cls([[None] * cols for _ in range(rows)])
+
+    @classmethod
+    def from_string(cls, string, delimiter=''):
+        return cls([cls.row_from_string(line, delimiter) for line in string.split('\n')])
+
+    @classmethod
+    def row_from_string(cls, string, delimiter=''):
+        items = string if delimiter == '' else string.split(delimiter)  # No delimiter = split on whitespace
+        return [cls.value_from_string(item) for item in items]
+
+    @classmethod
+    def value_from_string(cls, string):
+        return string
 
     def indexes(self):
         for i in range(len(self.data)):
             for j in range(len(self.data[i])):
                 yield i, j
 
+    def rows(self):
+        return len(self.data)
+
+    def cols(self):
+        return len(self.data[0])
+
     def in_bounds(self, position):
         i, j = position
         return 0 <= i < len(self.data) and 0 <= j < len(self.data[i])
 
     def transpose(self):
-        return Matrix([list(t) for t in zip(*self.data)])
-
-    def sum(self):
-        return sum(sum(self.data, []))
+        return self.__class__([list(t) for t in zip(*self.data)])
 
     def adjacent(self, position, diagonals=False):
         i, j = position
@@ -50,6 +63,15 @@ class Matrix:
         if diagonals:
             options.extend([(i - 1, j - 1), (i - 1, j + 1), (i + 1, j - 1), (i + 1, j + 1)])
         return [position for position in options if self.in_bounds(position)]
+
+
+class Matrix(Grid):
+    @classmethod
+    def value_from_string(cls, string):
+        return int(string)
+
+    def sum(self):
+        return sum(sum(self.data, []))
 
 
 # Adapted from https://docs.python.org/3.7/library/heapq.html#priority-queue-implementation-notes
@@ -183,7 +205,7 @@ def day4():
     with open('4.txt') as f:
         picks = [int(val) for val in f.readline().split(',')]
         f.readline()
-        boards = [Matrix.from_string(board) for board in f.read().split('\n\n')]
+        boards = [Matrix.from_string(board, None) for board in f.read().split('\n\n')]
     print(winner())
     print(loser())
 
@@ -317,7 +339,7 @@ def day9():
                 build_basin(basin, p)
 
     with open('9.txt') as f:
-        data = Matrix.from_string(f.read(), '')
+        data = Matrix.from_string(f.read())
     safe_spots = []
     for current in data.indexes():
         adj_heights = [data[pos] for pos in data.adjacent(current)]
@@ -395,7 +417,7 @@ def day11():
         return flashers
 
     with open('11.txt') as f:
-        data = Matrix.from_string(f.read(), '')
+        data = Matrix.from_string(f.read())
     data_copy = copy(data)
     print(sum(len(simulate(data_copy)) for _ in range(100)))
     i = 0
@@ -498,7 +520,7 @@ def day15():
                     unvisited.add_task(neighbor, new_dist)
 
     with open('15.txt') as f:
-        graph = Matrix.from_string(f.read(), '')
+        graph = Matrix.from_string(f.read())
     start = (0, 0)
     end = (len(graph.data)) - 1, (len(graph.data[0])) - 1
     print(dijkstra(graph, start, end))
@@ -706,9 +728,9 @@ def day19():
                 bases.append((xb, yb, zb))
         return bases
 
-    def find_overlap(a, b, basis_opts):
+    def find_overlap(a, b, bases):
         a_set = set(a)
-        for basis in basis_opts:
+        for basis in bases:
             rotated = rotate(b, basis)
             for m, point in enumerate(rotated):
                 for n, start in enumerate(a):
@@ -735,9 +757,9 @@ def day19():
             found_map = False
             for i in mapped:
                 if i not in checked[j]:
-                    transformed, scanner = find_overlap(entries[i], entries[j], basis_opts)
-                    if transformed:
-                        entries[j] = transformed
+                    updated, scanner = find_overlap(entries[i], entries[j], basis_opts)
+                    if updated:
+                        entries[j] = updated
                         scanner_positions.add(scanner)
                         found_map = True
                         mapped.add(j)
@@ -753,35 +775,35 @@ def day19():
 
 
 def day20():
-    def process(in_grid, enhance_table, odd):
-        out_grid = []
-        for i in range(-1, len(in_grid) + 1):
-            out_line = ''
-            for j in range(-1, len(in_grid[0]) + 1):
-                code = ''
-                for e in ((i + u, j + v) for u in (-1, 0, +1) for v in (-1, 0, +1)):
-                    if odd and enhance_table[0] == '#':
-                        if 0 <= e[0] < len(in_grid) and 0 <= e[1] < len(in_grid[e[0]]) and in_grid[e[0]][e[1]] == '.':
-                            code += '0'
-                        else:
-                            code += '1'
-                    else:
-                        if 0 <= e[0] < len(in_grid) and 0 <= e[1] < len(in_grid[e[0]]) and in_grid[e[0]][e[1]] == '#':
-                            code += '1'
-                        else:
-                            code += '0'
-                out_line += enhance_table[int(code, 2)]
-            out_grid.append(out_line)
-        return out_grid
+    class ImageMatrix(Matrix):
+        @classmethod
+        def value_from_string(cls, string):
+            return 1 if string == '#' else 0
+
+    scan_offsets = tuple(product((-2, -1, 0), repeat=2))
+
+    def process(in_grid, enhance_table, odd_iteration):
+        out_grid_2 = ImageMatrix.from_dimensions(in_grid.rows() + 2, in_grid.cols() + 2)
+        for i, j in out_grid_2.indexes():
+            code = 0
+            for u, v in scan_offsets:
+                scan_position = (i + u, j + v)
+                code *= 2
+                if in_grid.in_bounds(scan_position):
+                    code += in_grid[scan_position]
+                elif odd_iteration:
+                    code += enhance_table[0]
+            out_grid_2[(i, j)] = enhance_table[code]
+        return out_grid_2
 
     with open('20.txt') as f:
-        algorithm = f.readline().strip()
+        algorithm = ImageMatrix.from_string(f.readline()).data[0]
         f.readline()
-        grid = [line.strip() for line in f.readlines()]
+        image = ImageMatrix.from_string(f.read())
     for i in range(50):
-        grid = process(grid, algorithm, bool(i % 2))
+        image = process(image, algorithm, bool(i % 2))
         if i == 1 or i == 49:
-            print(sum([1 for row in grid for val in row if val == '#']))
+            print(image.sum())
 
 
 def day21():
