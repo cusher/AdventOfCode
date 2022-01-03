@@ -10,6 +10,9 @@ class Grid:
     def __init__(self, data):
         self.data = data
 
+    def __eq__(self, other):
+        return isinstance(other, Grid) and self.data == other.data
+
     def __copy__(self):
         return self.__class__([row.copy() for row in self.data])
 
@@ -1066,5 +1069,31 @@ def day24():
     print(''.join(str(d) for d in reversed(min_digits)))
 
 
+def day25():
+    def tick(grid, char):
+        rows, cols = grid.rows(), grid.cols()
+        updated = copy(grid)
+        for i in grid.indexes():
+            if grid[i] == char:
+                if char == '>':
+                    u = (i[0], (i[1] + 1) % cols)
+                else:
+                    u = ((i[0] + 1) % rows, i[1])
+                if grid[u] == '.':
+                    updated[i] = '.'
+                    updated[u] = char
+        return updated
+
+    with open('25.txt') as f:
+        sea = Grid.from_string(f.read())
+    ticks = 0
+    last_sea = None
+    while sea != last_sea:
+        last_sea = sea
+        sea = tick(tick(sea, '>'), 'v')
+        ticks += 1
+    print(ticks)
+
+
 if __name__ == '__main__':
-    day24()
+    day25()
